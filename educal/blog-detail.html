@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=800, initial-scale=1.0">
+  <title>Blog Detail</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fafbfc;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .blog-title {
+      font-size: 2.2rem;
+      margin-bottom: 18px;
+      color: #222;
+    }
+    .blog-cover {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+      min-height: 200px;
+      object-fit: cover;
+      background: #eee;
+    }
+    .blog-description {
+      font-size: 1.15rem;
+      color: #444;
+      line-height: 1.7;
+      margin-bottom: 0;
+      text-align: left;
+    }
+    .not-found {
+      color: #c00;
+      font-size: 1.3rem;
+      margin-top: 60px;
+      text-align: center;
+    }
+    @media (max-width: 850px) {
+      .container { padding: 18px 6vw; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="blog-container">
+    <div>Loading...</div>
+  </div>
+  <script>
+    function getSlugFromSearch() {
+      const params = new URLSearchParams(window.location.search);
+      const slug = params.get('slug');
+      console.log('Fetched slug from URL:', slug);
+      return slug;
+    }
+
+    async function fetchBlogBySlug(slug) {
+      const apiUrl = `https://loved-bell-27abb9c4f4.strapiapp.com/api/articles?filters[slug][$eq]=${encodeURIComponent(slug)}&populate=cover`;
+      console.log('API URL:', apiUrl);
+      const res = await fetch(apiUrl);
+      if (!res.ok) throw new Error('Network error');
+      const data = await res.json();
+      return data.data && data.data.length > 0 ? data.data[0] : null;
+    }
+
+    function renderBlog(blog) {
+      const container = document.getElementById('blog-container');
+      if (!blog) {
+        container.innerHTML = '<div class="not-found">Blog not found</div>';
+        return;
+      }
+      const { title, description, cover } = blog.attributes;
+      let coverUrl = '';
+      if (cover && cover.data && cover.data.attributes && cover.data.attributes.url) {
+        coverUrl = cover.data.attributes.url;
+        if (coverUrl.startsWith('/')) {
+          coverUrl = 'https://loved-bell-27abb9c4f4.strapiapp.com' + coverUrl;
+        }
+      } else {
+        // Use a default image if no cover is present
+        coverUrl = 'https://via.placeholder.com/800x350?text=No+Image';
+      }
+      container.innerHTML = `
+        <h1 class="blog-title">${title}</h1>
+        <img class="blog-cover" src="${coverUrl}" alt="${title}">
+        <div class="blog-description">${description || ''}</div>
+      `;
+    }
+
+    async function main() {
+      const slug = getSlugFromSearch();
+      if (!slug) {
+        document.getElementById('blog-container').innerHTML = '<div class="not-found">Blog not found</div>';
+        return;
+      }
+      try {
+        const blog = await fetchBlogBySlug(slug);
+        renderBlog(blog);
+      } catch (e) {
+        document.getElementById('blog-container').innerHTML = '<div class="not-found">Blog not found</div>';
+      }
+    }
+    main();
+  </script>
+</body>
+</html> 
